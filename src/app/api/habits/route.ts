@@ -51,14 +51,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's tier
-    const { data: profile, error: profileError } = await supabase
+    // Get user's tier (auto-create profile if trigger missed)
+    let { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("tier")
       .eq("id", user.id)
       .single();
 
-    if (profileError) {
+    if (profileError && profileError.code === "PGRST116") {
+      // Profile row missing — trigger may have failed silently. Auto-create it.
+      const { data: newProfile, error: insertError } = await supabase
+        .from("profiles")
+        .insert({ id: user.id, email: user.email ?? "" })
+        .select("tier")
+        .single();
+
+      if (insertError) {
+        console.error("Failed to auto-create profile:", insertError);
+        return apiError(
+          500,
+          errorCodes.INTERNAL_ERROR,
+          "Failed to create user profile"
+        );
+      }
+      profile = newProfile;
+    } else if (profileError) {
       return apiError(
         500,
         errorCodes.INTERNAL_ERROR,
