@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface Profile {
   id: string;
@@ -18,44 +23,59 @@ export default function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: Replace with GET /api/profiles
-      // const response = await fetch("/api/profiles");
-      // const data = await response.json();
+      // Get user from Supabase Auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      // Mock data
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setProfile({
-        id: "user-123",
-        email: "user@example.com",
-        tier: "free",
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      });
+      if (authError || !user) {
+        router.push("/login");
+        return;
+      }
+
+      // Get profile data from profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, email, tier, created_at")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profileData) {
+        // Fallback to auth user data if profile not found
+        setProfile({
+          id: user.id,
+          email: user.email || "",
+          tier: "free",
+          created_at: user.created_at,
+        });
+      } else {
+        setProfile({
+          id: profileData.id,
+          email: profileData.email || user.email || "",
+          tier: profileData.tier,
+          created_at: profileData.created_at,
+        });
+      }
     } catch (err) {
       setError("Couldn't load your account. Please refresh and try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // TODO: Replace with POST /api/auth/logout or clear session
-      // const response = await fetch("/api/auth/logout", {
-      //   method: "POST",
-      // });
-
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Clear session and redirect to home
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        throw signOutError;
+      }
       router.push("/");
     } catch (err) {
       setError("Failed to logout. Please try again.");
@@ -84,11 +104,11 @@ export default function AccountPage() {
     );
   }
 
-  if (error) {
+  if (error && !profile) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-2">Couldn't load your account</h2>
+        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-2">Couldn&apos;t load your account</h2>
         <p className="text-slate-600 text-center mb-6">{error}</p>
         <button
           onClick={fetchProfile}
@@ -115,6 +135,12 @@ export default function AccountPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Account</h1>
+
+      {error && (
+        <div className="card bg-red-50 border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       {/* Profile Section */}
       <div className="card space-y-4">
@@ -166,7 +192,7 @@ export default function AccountPage() {
         {profile.tier === "pro" && (
           <div className="pt-4 border-t border-slate-200">
             <p className="text-sm text-slate-600 mb-4">
-              You're pro! All features unlocked including unlimited habits and weekly email summaries.
+              You&apos;re pro! All features unlocked including unlimited habits and weekly email summaries.
             </p>
             <button
               disabled

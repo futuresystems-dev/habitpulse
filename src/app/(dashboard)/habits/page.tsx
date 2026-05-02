@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { HabitCard } from "@/components/HabitCard";
 import { HabitFormModal } from "@/components/HabitFormModal";
 
@@ -23,78 +22,87 @@ export default function HabitsPage() {
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchHabits();
-  }, []);
-
-  const fetchHabits = async () => {
+  const fetchHabits = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: Replace mock with GET /api/habits
-      // const response = await fetch("/api/habits");
-      // const data = await response.json();
-
-      // Mock data
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setHabits([]);
+      const response = await fetch("/api/habits");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to fetch habits");
+      }
+      const json = await response.json();
+      setHabits(json.data || []);
     } catch (err) {
       setError("Couldn't load your habits. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchHabits();
+  }, [fetchHabits]);
 
   const handleCreateOrUpdate = async (name: string, icon: string) => {
     try {
       if (editingHabit) {
-        // TODO: Replace with PATCH /api/habits/[id]
-        // const response = await fetch(`/api/habits/${editingHabit.id}`, {
-        //   method: "PATCH",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({ name, icon }),
-        // });
+        const response = await fetch(`/api/habits/${editingHabit.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, icon }),
+        });
 
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || "Failed to update habit");
+        }
+
+        const json = await response.json();
+        const updatedHabit: Habit = json.data;
         setHabits((prev) =>
-          prev.map((h) => (h.id === editingHabit.id ? { ...h, name, icon } : h))
+          prev.map((h) => (h.id === updatedHabit.id ? updatedHabit : h))
         );
       } else {
-        // TODO: Replace with POST /api/habits
-        // const response = await fetch("/api/habits", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({ name, icon }),
-        // });
+        const response = await fetch("/api/habits", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, icon }),
+        });
 
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const newHabit: Habit = {
-          id: Date.now().toString(),
-          name,
-          icon,
-          frequency: "daily",
-          active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        setHabits((prev) => [...prev, newHabit]);
+        if (!response.ok) {
+          const errorData = await response.json();
+          const message = errorData.error?.message || "Failed to create habit";
+          // Surface specific errors to the user
+          setError(message);
+          throw new Error(message);
+        }
+
+        const json = await response.json();
+        const newHabit: Habit = json.data;
+        setHabits((prev) => [newHabit, ...prev]);
       }
 
       setShowModal(false);
       setEditingHabit(null);
     } catch (err) {
-      setError("Failed to save habit. Please try again.");
+      if (!error) {
+        setError("Failed to save habit. Please try again.");
+      }
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      // TODO: Replace with DELETE /api/habits/[id]
-      // const response = await fetch(`/api/habits/${id}`, {
-      //   method: "DELETE",
-      // });
+      const response = await fetch(`/api/habits/${id}`, {
+        method: "DELETE",
+      });
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Failed to delete habit");
+      }
+
       setHabits((prev) => prev.filter((h) => h.id !== id));
       setDeleteConfirm(null);
     } catch (err) {
@@ -106,79 +114,6 @@ export default function HabitsPage() {
     setEditingHabit(habit);
     setShowModal(true);
   };
-
-  // DEFAULT STATE
-  if (!isLoading && habits.length > 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Your Habits</h1>
-          <button
-            onClick={() => {
-              setEditingHabit(null);
-              setShowModal(true);
-            }}
-            className="h-11 px-4 rounded-lg bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors whitespace-nowrap"
-          >
-            + Create Habit
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {habits.map((habit) => (
-            <div key={habit.id} className="relative">
-              <HabitCard
-                id={habit.id}
-                name={habit.name}
-                icon={habit.icon}
-                showActions={true}
-                onEdit={() => handleEdit(habit)}
-                onDelete={() => setDeleteConfirm(habit.id)}
-              />
-
-              {/* Delete Confirmation Modal */}
-              {deleteConfirm === habit.id && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="card max-w-sm">
-                    <h2 className="text-lg font-bold text-slate-900 mb-2">
-                      Delete '{habit.name}'?
-                    </h2>
-                    <p className="text-slate-600 text-sm mb-6">
-                      This cannot be undone. All logs for this habit will be deleted.
-                    </p>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        className="flex-1 h-10 rounded-lg border border-slate-300 text-slate-900 font-semibold text-sm hover:bg-slate-50 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleDelete(habit.id)}
-                        className="flex-1 h-10 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <HabitFormModal
-          isOpen={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setEditingHabit(null);
-          }}
-          onSubmit={handleCreateOrUpdate}
-          initialHabit={editingHabit}
-        />
-      </div>
-    );
-  }
 
   // LOADING STATE
   if (isLoading) {
@@ -211,11 +146,11 @@ export default function HabitsPage() {
   }
 
   // ERROR STATE
-  if (error) {
+  if (error && habits.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-2">Couldn't load your habits</h2>
+        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-2">Couldn&apos;t load your habits</h2>
         <p className="text-slate-600 text-center mb-6">{error}</p>
         <button
           onClick={fetchHabits}
@@ -228,22 +163,102 @@ export default function HabitsPage() {
   }
 
   // EMPTY STATE
+  if (habits.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 md:py-24">
+        <div className="text-5xl mb-6">📝</div>
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">No habits yet</h2>
+        <p className="text-slate-600 text-center mb-8 max-w-sm">
+          You haven&apos;t created any habits. Get started below.
+        </p>
+        <button
+          onClick={() => {
+            setEditingHabit(null);
+            setShowModal(true);
+          }}
+          className="h-11 px-6 rounded-lg bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors inline-flex items-center"
+        >
+          + Create Habit
+        </button>
+
+        <HabitFormModal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setEditingHabit(null);
+          }}
+          onSubmit={handleCreateOrUpdate}
+          initialHabit={editingHabit}
+        />
+      </div>
+    );
+  }
+
+  // DEFAULT STATE
   return (
-    <div className="flex flex-col items-center justify-center py-16 md:py-24">
-      <div className="text-5xl mb-6">📝</div>
-      <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">No habits yet</h2>
-      <p className="text-slate-600 text-center mb-8 max-w-sm">
-        You haven't created any habits. Get started below.
-      </p>
-      <button
-        onClick={() => {
-          setEditingHabit(null);
-          setShowModal(true);
-        }}
-        className="h-11 px-6 rounded-lg bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors inline-flex items-center"
-      >
-        + Create Habit
-      </button>
+    <div className="space-y-6">
+      {error && (
+        <div className="card bg-red-50 border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="text-xs text-red-500 underline mt-1">Dismiss</button>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Your Habits</h1>
+        <button
+          onClick={() => {
+            setEditingHabit(null);
+            setShowModal(true);
+          }}
+          className="h-11 px-4 rounded-lg bg-primary text-white font-semibold text-base hover:bg-primary/90 transition-colors whitespace-nowrap"
+        >
+          + Create Habit
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {habits.map((habit) => (
+          <div key={habit.id} className="relative">
+            <HabitCard
+              id={habit.id}
+              name={habit.name}
+              icon={habit.icon}
+              showActions={true}
+              onEdit={() => handleEdit(habit)}
+              onDelete={() => setDeleteConfirm(habit.id)}
+            />
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm === habit.id && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="card max-w-sm">
+                  <h2 className="text-lg font-bold text-slate-900 mb-2">
+                    Delete &apos;{habit.name}&apos;?
+                  </h2>
+                  <p className="text-slate-600 text-sm mb-6">
+                    This cannot be undone. All logs for this habit will be deleted.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setDeleteConfirm(null)}
+                      className="flex-1 h-10 rounded-lg border border-slate-300 text-slate-900 font-semibold text-sm hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleDelete(habit.id)}
+                      className="flex-1 h-10 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       <HabitFormModal
         isOpen={showModal}

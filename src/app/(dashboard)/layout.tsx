@@ -1,7 +1,7 @@
 import { DashboardNav } from "@/components/DashboardNav";
 
-// TODO: Add auth check middleware to protect this layout
-// Unauthenticated users should be redirected to /auth/login
+// Auth protection is handled by middleware.ts which checks Supabase session
+// and redirects unauthenticated users to /login
 
 export default function DashboardLayout({
   children,
