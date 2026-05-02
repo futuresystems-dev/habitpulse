@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -10,10 +11,28 @@ const supabase = createBrowserClient(
 );
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("error") === "auth_failed") {
+      setAuthError(
+        "That magic link didn’t work. This usually happens when you open the link in a different browser than the one you signed in from. Please try again using the same browser."
+      );
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +98,12 @@ export default function LoginPage() {
           HabitPulse
         </Link>
       </div>
+
+      {authError && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-4">
+          <p className="text-sm text-amber-800">{authError}</p>
+        </div>
+      )}
 
       <h1 className="text-2xl font-bold text-slate-900 mb-2">Sign In to HabitPulse</h1>
       <p className="text-slate-600 text-sm mb-6">
