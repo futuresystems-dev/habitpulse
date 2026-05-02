@@ -27,7 +27,7 @@ export default function LandingPage() {
               Pricing
             </Link>
             <Link
-              href="/auth/login"
+              href="/login"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
             >
               Sign In
@@ -46,7 +46,7 @@ export default function LandingPage() {
             Track your daily habits, build unstoppable streaks, and stay consistent with what matters most.
           </p>
           <Link
-            href="/auth/login"
+            href="/login"
             className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-base font-semibold text-white hover:bg-primary/90 transition-colors"
           >
             Get Started
@@ -138,7 +138,7 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Link
-                href="/auth/login"
+                href="/login"
                 className="block w-full rounded-lg border border-primary bg-white px-6 py-3 text-center font-semibold text-primary hover:bg-primary/5 transition-colors"
               >
                 Get Started
@@ -170,12 +170,12 @@ export default function LandingPage() {
                   Export habit data
                 </li>
               </ul>
-              <button
-                disabled
-                className="block w-full rounded-lg bg-primary/10 px-6 py-3 text-center font-semibold text-primary opacity-50 cursor-not-allowed"
+              <Link
+                href="/login"
+                className="block w-full rounded-lg bg-primary px-6 py-3 text-center font-semibold text-white hover:bg-primary/90 transition-colors"
               >
-                Coming Soon
-              </button>
+                Start Free, Upgrade Later
+              </Link>
             </div>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function LandingPage() {
             Start tracking today. Free for up to 3 habits, no credit card required.
           </p>
           <Link
-            href="/auth/login"
+            href="/login"
             className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-base font-semibold text-white hover:bg-primary/90 transition-colors"
           >
             Get Started Now
@@ -201,8 +201,19 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white px-4 py-8">
-        <div className="mx-auto max-w-6xl text-center text-slate-600 text-sm">
+        <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 text-slate-600 text-sm">
           <p>© 2026 HabitPulse. Built for freelancers who value consistency.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="hover:text-slate-900 transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-slate-900 transition-colors">
+              Terms
+            </Link>
+            <a href="mailto:hello@habitpulse.app" className="hover:text-slate-900 transition-colors">
+              Contact
+            </a>
+          </div>
         </div>
       </footer>
     </div>

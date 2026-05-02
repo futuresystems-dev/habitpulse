@@ -180,12 +180,17 @@ export default function AccountPage() {
             <p className="text-sm text-slate-600 mb-4">
               <span className="font-semibold">Free tier:</span> Up to 3 habits, streak tracking, daily check-in, weekly summary
             </p>
-            <button
-              disabled
-              className="w-full h-11 rounded-lg bg-primary/10 text-primary font-semibold text-base opacity-50 cursor-not-allowed"
-            >
-              Upgrade Coming Soon
-            </button>
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 text-center">
+                Pro tier launching soon with unlimited habits and email summaries.
+              </p>
+              <button
+                disabled
+                className="w-full h-11 rounded-lg bg-primary/10 text-primary font-semibold text-base cursor-not-allowed"
+              >
+                Upgrade to Pro (Launching Soon)
+              </button>
+            </div>
           </div>
         )}
 
